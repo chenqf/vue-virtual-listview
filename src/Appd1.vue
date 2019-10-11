@@ -1,29 +1,30 @@
 <template>
   <div id="app">
-    <VirtualList :listData="data" :itemSize="40" />
+    <VirtualListD1 :listData="data" :itemSize="40" />
   </div>
 </template>
 
 <script>
-import VirtualList from './components/VirtualList.vue'
+import VirtualListD1 from './components/VirtualListD1.vue'
 import faker from 'faker';
+import _ from 'lodash'
 
 export default {
   name: 'app',
   data(){
     let data = [];
-    for (let id = 0; id < 500; id++) {
+    for (let id = 0; id < 100000; id++) {
       data.push({
         id,
         value: faker.lorem.sentences().slice(0,5) // 长文本
       })
     }
     return {
-      data
+      data:Object.freeze(data)
     };
   },
   components: {
-    VirtualList
+    VirtualListD1
   }
 }
 </script>
