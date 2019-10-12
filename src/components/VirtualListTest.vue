@@ -7,7 +7,7 @@
         v-for="item in visibleData" 
         :key="item.id"
         :id="'-----'+item.id"
-        :style="{ height: itemSize + 'px',lineHeight: itemSize + 'px' }"
+        :style="{ height: itemSize + 'px' }"
         >{{ item.value }}</div>
     </div>
   </div>
@@ -60,7 +60,7 @@ export default {
     };
   },
   methods: {
-    scrollEvent:_.throttle(function(){
+    scrollEvent:function(){
       //当前滚动位置
       let scrollTop = this.$refs.list.scrollTop;
       //此时的开始索引
@@ -70,7 +70,7 @@ export default {
       //此时的偏移量
       let startOffset = scrollTop - (scrollTop % this.itemSize);
       this.$refs.content.style.transform = `translate3d(0,${startOffset}px,0)`;
-    },100)
+    }
   }
 };
 </script>
