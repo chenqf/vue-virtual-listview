@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <VirtualList :listData="data" :itemSize="40" />
+    <VirtualList :listData="data" :itemSize="150" />
   </div>
 </template>
 
@@ -12,7 +12,7 @@ export default {
   name: 'app',
   data(){
     let data = [];
-    for (let id = 0; id < 500; id++) {
+    for (let id = 0; id < 50000; id++) {
       data.push({
         id,
         value: faker.lorem.sentences().slice(0,5) // 长文本

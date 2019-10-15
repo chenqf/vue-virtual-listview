@@ -81,6 +81,7 @@ export default {
   height: 100%;
   overflow: auto;
   position: relative;
+  -webkit-overflow-scrolling: touch;
 }
 
 .infinite-list-phantom {

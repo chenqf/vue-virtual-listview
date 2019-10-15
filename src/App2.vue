@@ -20,7 +20,7 @@ export default {
     }
     
     return {
-      data:Object.freeze(data)
+      data
     };
   },
   components: {
