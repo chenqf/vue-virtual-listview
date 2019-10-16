@@ -3,10 +3,11 @@
     <div ref="phantom" class="infinite-list-phantom"></div>
     <div ref="content" class="infinite-list">
       <div ref="items"
-        v-for="item in visibleData" 
-        :key="item.id"
+        v-for="item in _listData" 
+        :key="item._index"
+        style="height:199px;border-bottom:1px solid red"
       >
-        <slot :item="item"></slot> 
+        <slot :item="item.item"></slot> 
       </div>
     </div>
   </div>
@@ -15,6 +16,16 @@
 
 <script>
 //组件api https://github.com/dwqs/react-virtual-list/blob/develop/README-CN.md
+
+/**
+ * 本地项目加入到git
+ * git remote add origin https://github.com/chenqf/vue-virtual-listview.git
+ * git push -u origin master
+ */
+
+
+//TODO 图片处理  指定初始滚动位置  ios下滚动异常  updated 的问题  require.content  
+
 export default {
   props: {
     //所有列表数据
@@ -39,19 +50,23 @@ export default {
     }
   },
   computed:{
-    //可显示的列表项数
+    _listData(){
+      return this.listData.map((item,index)=>{
+        return {
+          _index:'_' + index,
+          item
+        }
+      })
+    },
     visibleCount(){
       return Math.ceil(this.screenHeight / this.estimatedItemSize);
     },
-    //顶部预渲染数据条数
     aboveCount(){
       return Math.min(this.start,this.bufferScale * this.visibleCount)
     },
-    //底部预渲染数据条数
     belowCount(){
       return Math.min(this.listData.length - this.end,this.bufferScale * this.visibleCount);
     },
-    //获取真实显示列表数据
     visibleData(){
       let start = this.start - this.aboveCount;
       let end = this.end + this.belowCount;
@@ -65,13 +80,26 @@ export default {
     window.vm = this;
   },
   updated(){
-    //TODO 
+
+    //列表数据长度不等于缓存长度
+    if(this.listData.length !== this.positions.length){
+      this.positions = this.listData.reduce((init,cur,curIndex)=>{
+        init.push({
+          index:curIndex,
+          top:curIndex ? init[curIndex - 1].bottom : 0,
+          height:this.estimatedItemSize,
+          bottom:(curIndex ? init[curIndex - 1].bottom : 0) + this.estimatedItemSize
+        })
+        return init;
+      },[])
+    }
+        //TODO 
     let nodes = this.$refs.items;
     if(!nodes){
       return ;
     }
     //获取真实渲染的大小
-    let itemPositions = this.getItemsPositions(this.$refs.items);
+    let itemPositions = this.getItemsPositions(this.$refs.items); 
     //更新缓存信息
     this.updateCacheInfo(itemPositions);
     //更新列表总高度
@@ -82,17 +110,8 @@ export default {
   },
   //TODO 
   data() {
-    let positions = [];
-    this.listData.forEach((item,index)=>{
-      positions.push({
-        index,
-        top:index ? positions[index - 1].bottom : 0,
-        height:this.estimatedItemSize,
-        bottom:(index ? positions[index - 1].bottom : 0) + this.estimatedItemSize
-      })
-    })
     return {
-      positions,
+      positions:[],
       //可视区域高度
       screenHeight:0,
       //起始索引
@@ -156,10 +175,7 @@ export default {
     setStartOffset(){
       let startOffset;
       if(this.start >= 1){
-        let size = 0;
-        for(let i = 1; i<= this.aboveCount;i++){
-          size += this.positions[this.start - i].height;
-        }
+        let size = this.positions[this.start].top - (this.positions[this.start - this.aboveCount] ? this.positions[this.start - this.aboveCount].top : 0);
         startOffset = this.positions[this.start - 1].bottom - size;
       }else{
         startOffset = 0;
@@ -204,10 +220,4 @@ export default {
   position: absolute;
 }
 
-.infinite-list-item {
-  padding: 5px;
-  color: #555;
-  box-sizing: border-box;
-  border-bottom: 1px solid #999;
-}
 </style>

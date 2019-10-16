@@ -41,6 +41,6 @@ export default {
   padding: 5px;
   color: #555;
   box-sizing: border-box;
-  border-bottom: 1px solid #999;
+  /* border-bottom: 1px solid #999; */
 }
 </style>
