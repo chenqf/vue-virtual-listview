@@ -1,16 +1,28 @@
 <template>
   <div id="app">
-    <VirtualList3 :listData="data" :estimatedItemSize="200" />
+    <VirtualList4 :listData="data" :estimatedItemSize="200" v-slot="slotProps">
+        <Item :item="slotProps.item"/>
+    </VirtualList4>
   </div>
 </template>
 
 <script>
-import VirtualList3 from './components/VirtualList3.vue'
+import VirtualList4 from './components/VirtualList4.vue'
+import Item from './components/Item.vue'
 import faker from 'faker';
 
 export default {
   name: 'app',
   data(){
+    
+
+    
+    return {
+      data:[]
+    };
+  },
+  created(){
+
     let data = [];
     for (let id = 0; id < 500; id++) {
       data.push({
@@ -22,14 +34,14 @@ export default {
 
     data[19].height = 300;
     data[29].height = 300;
-
+    setTimeout(()=>{
+      this.data = data;
+    },500);
     
-    return {
-      data:Object.freeze(data)
-    };
   },
   components: {
-    VirtualList3
+    VirtualList4,
+    Item
   }
 }
 </script>

@@ -3,12 +3,10 @@
     <div ref="phantom" class="infinite-list-phantom"></div>
     <div ref="content" class="infinite-list">
       <div ref="items"
-        class="infinite-list-item" 
         v-for="item in visibleData" 
         :key="item.id"
-        :id="'__' + item.id"
       >
-        <p><span style="color:red">{{item.id}}</span>{{item.value}}</p>
+        <slot :item="item"></slot> 
       </div>
     </div>
   </div>
@@ -64,8 +62,14 @@ export default {
     this.screenHeight = this.$el.clientHeight;
     this.start = 0;
     this.end = this.start + this.visibleCount;
+    window.vm = this;
   },
   updated(){
+    //TODO 
+    let nodes = this.$refs.items;
+    if(!nodes){
+      return ;
+    }
     //获取真实渲染的大小
     let itemPositions = this.getItemsPositions(this.$refs.items);
     //更新缓存信息
@@ -76,6 +80,7 @@ export default {
     //更新真实偏移量
     this.setStartOffset();
   },
+  //TODO 
   data() {
     let positions = [];
     this.listData.forEach((item,index)=>{
