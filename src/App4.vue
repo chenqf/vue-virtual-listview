@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <VirtualList4 :listData="data" :estimatedItemSize="200" v-slot="slotProps">
-        <Item :item="slotProps.item"/>
+        <Item :item="item" :key="item.id" v-for="item in slotProps.items"/>
     </VirtualList4>
   </div>
 </template>

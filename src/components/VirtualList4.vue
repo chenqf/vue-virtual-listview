@@ -2,13 +2,7 @@
   <div ref="list" :style="{height}" class="infinite-list-container" @scroll="scrollEvent($event)">
     <div ref="phantom" class="infinite-list-phantom"></div>
     <div ref="content" class="infinite-list">
-      <div ref="items"
-        v-for="item in _listData" 
-        :key="item._index"
-        style="height:199px;border-bottom:1px solid red"
-      >
-        <slot :item="item.item"></slot> 
-      </div>
+        <slot :items="visibleData"></slot> 
     </div>
   </div>
 </template>
@@ -93,13 +87,13 @@ export default {
         return init;
       },[])
     }
-        //TODO 
-    let nodes = this.$refs.items;
-    if(!nodes){
+
+    let nodes = this.$children.map($vm=>$vm.$el);
+    if(!nodes.length){
       return ;
     }
     //获取真实渲染的大小
-    let itemPositions = this.getItemsPositions(this.$refs.items); 
+    let itemPositions = this.getItemsPositions(nodes); 
     //更新缓存信息
     this.updateCacheInfo(itemPositions);
     //更新列表总高度
@@ -130,9 +124,8 @@ export default {
     },
     //获取列表项的当前位置
     getItemsPositions(nodes){
-      let items = Array.from(nodes);
       let scrollTop = this.$refs.list.scrollTop;
-      return items.map((el,i)=>{
+      return nodes.map((el,i)=>{
           //当前节点在总列表中的索引
           let index = this.start - this.aboveCount + i;
           let oldPos = this.positions[index];
