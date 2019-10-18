@@ -2,15 +2,28 @@
   <div ref="list" :style="{height}" class="infinite-list-container" @scroll="scrollEvent($event)">
     <div ref="phantom" class="infinite-list-phantom"></div>
     <div ref="content" class="infinite-list">
-        <slot :items="visibleData"></slot> 
+      <div class="infinite-list-item" ref="items" :id="item._index" :key="item._index" v-for="item in visibleData">
+        <slot ref="slot" :item="item.item"></slot>
+      </div>
     </div>
   </div>
 </template>
 
 
 <script>
+//组件api https://github.com/dwqs/react-virtual-list/blob/develop/README-CN.md
+
+/**
+ * 本地项目加入到git
+ * git remote add origin https://github.com/chenqf/vue-virtual-listview.git
+ * git push -u origin master
+ */
+
+
+//TODO 图片处理  指定初始滚动位置  ios下滚动异常  updated 的问题  require.content  
+
+
 export default {
-  name:'VirtualList',
   props: {
     //所有列表数据
     listData:{
@@ -34,6 +47,15 @@ export default {
     }
   },
   computed:{
+    _listData(){
+
+      return this.listData.map((item,index)=>{
+        return {
+          _index:`_${index}`,
+          item
+        }
+      })
+    },
     visibleCount(){
       return Math.ceil(this.screenHeight / this.estimatedItemSize);
     },
@@ -46,8 +68,12 @@ export default {
     visibleData(){
       let start = this.start - this.aboveCount;
       let end = this.end + this.belowCount;
-      return this.listData.slice(start, end);
+      return this._listData.slice(start, end);
     }
+  },
+  created(){
+    this.initPositions();
+    this.initSizes();
   },
   mounted() {
     this.screenHeight = this.$el.clientHeight;
@@ -59,35 +85,25 @@ export default {
 
     //列表数据长度不等于缓存长度
     if(this.listData.length !== this.positions.length){
-      this.positions = this.listData.reduce((init,cur,curIndex)=>{
-        init.push({
-          index:curIndex,
-          top:curIndex ? init[curIndex - 1].bottom : 0,
-          height:this.estimatedItemSize,
-          bottom:(curIndex ? init[curIndex - 1].bottom : 0) + this.estimatedItemSize
-        })
-        return init;
-      },[])
+      this.initPositions();
+      this.initSizes();
     }
-
-    let nodes = this.$children.map($vm=>$vm.$el);
-    if(!nodes.length){
-      return ;
-    }
-    //获取真实渲染的大小
-    let itemPositions = this.getItemsPositions(nodes); 
-    //更新缓存信息
-    this.updateCacheInfo(itemPositions);
-    //更新列表总高度
-    let height = this.positions[this.positions.length - 1].bottom;
-    this.$refs.phantom.style.height = height + 'px'
-    //更新真实偏移量
-    this.setStartOffset();
+    this.$nextTick(function () {
+      if(!this.$refs.items || !this.$refs.items.length){
+        return ;
+      }
+      //获取真实元素大小，修改对应的尺寸缓存
+      this.getItemsSize(); 
+      //更新列表总高度
+      let height = this.positions[this.positions.length - 1].bottom;
+      this.$refs.phantom.style.height = height + 'px'
+      //更新真实偏移量
+      this.setStartOffset();
+    })
   },
   //TODO 
   data() {
     return {
-      positions:[],
       //可视区域高度
       screenHeight:0,
       //起始索引
@@ -97,6 +113,17 @@ export default {
     };
   },
   methods: {
+    initSizes(){
+      this.sizes = this.listData.map(()=>this.estimatedItemSize);
+    },
+    initPositions(){
+      this.positions = this.listData.map((d,index)=>({
+          index,
+          top:index*this.estimatedItemSize,
+          bottom:(index+1)*this.estimatedItemSize
+        })
+      );
+    },
     //获取列表起始索引
     getStartIndex(scrollTop = 0){
       let item = this.positions.find(i => i && i.bottom > scrollTop);
@@ -104,47 +131,26 @@ export default {
         return item.index;  
       }
     },
-    //获取列表项的当前位置
-    getItemsPositions(nodes){
-      let scrollTop = this.$refs.list.scrollTop;
-      return nodes.map((el,i)=>{
-          //当前节点在总列表中的索引
-          let index = this.start - this.aboveCount + i;
-          let oldPos = this.positions[index];
-          if(oldPos.over){
-            return oldPos;
-          }
-          let rect = el.getBoundingClientRect();
-          let top = rect.top + scrollTop;
-          let bottom = rect.bottom + scrollTop;
-          let height = bottom - top;
-          
-          return {
-            index,
-            top,
-            bottom,
-            height
-          }
-      })
-    },
-    //更新缓存位置信息
-    updateCacheInfo(posList){
-      let startIndex = posList[0].index;
-      let endIndex = posList.length + startIndex - 1;
-      let oldEndPos = this.positions[endIndex];
-      let nowEndPos = posList[posList.length - 1];
-      let distance = nowEndPos.bottom - oldEndPos.bottom;
-      posList.forEach((pos)=>{
-        if(!pos.over){
-          this.positions[pos.index] = {
-            over:true,
-            ...pos
+    //获取列表项的当前尺寸
+    getItemsSize(){
+      let nodes = this.$refs.items;
+      nodes.forEach((node)=>{
+        let rect = node.getBoundingClientRect();
+        let height = rect.height;
+        let index = +node.id.slice(1)
+        let oldHeight = this.sizes[index];
+        let dValue = oldHeight - height;
+        //存在差值
+        if(dValue){
+          this.positions[index].bottom = this.positions[index].bottom - dValue;
+          this.sizes[index] = height;
+          for(let k = index + 1;k<this.positions.length; k++){
+            this.positions[k].top = this.positions[k-1].bottom;
+            this.positions[k].bottom = this.positions[k].bottom - dValue;
           }
         }
+        
       })
-      for(let i = endIndex + 1; i<this.positions.length;i++){
-        this.positions[i].bottom = this.positions[i].bottom + distance;
-      }
     },
     //获取当前的偏移量
     setStartOffset(){
@@ -165,6 +171,11 @@ export default {
       this.start = this.getStartIndex(scrollTop);
       //此时的结束索引
       this.end = this.start + this.visibleCount;
+
+      // this.log('start,end:',this.start,this.end);
+      
+
+
       //此时的偏移量
       this.setStartOffset();
     }
@@ -193,6 +204,14 @@ export default {
   right: 0;
   top: 0;
   position: absolute;
+}
+
+.infinite-list-item {
+  padding: 5px;
+  color: #555;
+  box-sizing: border-box;
+  border-bottom: 1px solid #999;
+  /* height:200px; */
 }
 
 </style>
