@@ -33,11 +33,11 @@ export default {
     //预估高度
     estimatedItemSize:{
       type:Number,
-      default:200
+      default:150
     },
     //缓冲区比例
     bufferScale:{
-      type:Number,
+      type:Number, 
       default:1
     },
     //容器高度 100px or 50vh
@@ -48,7 +48,6 @@ export default {
   },
   computed:{
     _listData(){
-
       return this.listData.map((item,index)=>{
         return {
           _index:`_${index}`,
@@ -79,10 +78,10 @@ export default {
     this.screenHeight = this.$el.clientHeight;
     this.start = 0;
     this.end = this.start + this.visibleCount;
+    //TODO window
     window.vm = this;
   },
   updated(){
-
     //列表数据长度不等于缓存长度
     if(this.listData.length !== this.positions.length){
       this.initPositions();
@@ -101,7 +100,6 @@ export default {
       this.setStartOffset();
     })
   },
-  //TODO 
   data() {
     return {
       //可视区域高度
@@ -126,10 +124,29 @@ export default {
     },
     //获取列表起始索引
     getStartIndex(scrollTop = 0){
-      let item = this.positions.find(i => i && i.bottom > scrollTop);
-      if(item){
-        return item.index;  
+      //二分法查找
+      return this.binarySearch(this.positions,scrollTop)
+    },
+    binarySearch(list,value){
+      let start = 0;
+      let end = list.length - 1;
+      let tempIndex = null;
+
+      while(start <= end){
+        let midIndex = parseInt((start + end)/2);
+        let midValue = list[midIndex].bottom;
+        if(midValue === value){
+          return midIndex + 1;
+        }else if(midValue < value){
+          start = midIndex + 1;
+        }else if(midValue > value){
+          if(tempIndex === null || tempIndex > midIndex){
+            tempIndex = midIndex;
+          }
+          end = end - 1;
+        }
       }
+      return tempIndex;
     },
     //获取列表项的当前尺寸
     getItemsSize(){
@@ -167,6 +184,7 @@ export default {
     scrollEvent() {
       //当前滚动位置
       let scrollTop = this.$refs.list.scrollTop;
+      // let startBottom = this.positions[this.start - ]
       //此时的开始索引
       this.start = this.getStartIndex(scrollTop);
       //此时的结束索引
