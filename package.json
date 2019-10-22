@@ -1,6 +1,6 @@
 {
   "name": "vue-virtual-listview",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "vue-virtual-listview",
   "private":false,
   "main": "dist/index.min.js",

@@ -11,19 +11,8 @@
 
 
 <script>
-//组件api https://github.com/dwqs/react-virtual-list/blob/develop/README-CN.md
-
-/**
- * 本地项目加入到git
- * git remote add origin https://github.com/chenqf/vue-virtual-listview.git
- * git push -u origin master
- */
-
-
-//TODO 图片处理  指定初始滚动位置  ios下滚动异常  updated 的问题  require.content  
-
-
 export default {
+  name:'VirtualList',
   props: {
     //所有列表数据
     listData:{
@@ -33,7 +22,7 @@ export default {
     //预估高度
     estimatedItemSize:{
       type:Number,
-      default:150
+      required: true
     },
     //缓冲区比例
     bufferScale:{
@@ -72,27 +61,25 @@ export default {
   },
   created(){
     this.initPositions();
-    this.initSizes();
+    window.vm = this;
   },
   mounted() {
     this.screenHeight = this.$el.clientHeight;
     this.start = 0;
     this.end = this.start + this.visibleCount;
-    //TODO window
-    window.vm = this;
   },
   updated(){
     //列表数据长度不等于缓存长度
     if(this.listData.length !== this.positions.length){
       this.initPositions();
-      this.initSizes();
     }
+
     this.$nextTick(function () {
       if(!this.$refs.items || !this.$refs.items.length){
         return ;
       }
       //获取真实元素大小，修改对应的尺寸缓存
-      this.getItemsSize(); 
+      this.updateItemsSize(); 
       //更新列表总高度
       let height = this.positions[this.positions.length - 1].bottom;
       this.$refs.phantom.style.height = height + 'px'
@@ -111,14 +98,12 @@ export default {
     };
   },
   methods: {
-    initSizes(){
-      this.sizes = this.listData.map(()=>this.estimatedItemSize);
-    },
     initPositions(){
       this.positions = this.listData.map((d,index)=>({
           index,
-          top:index*this.estimatedItemSize,
-          bottom:(index+1)*this.estimatedItemSize
+          height:this.estimatedItemSize,
+          top:index * this.estimatedItemSize,
+          bottom:(index+1) * this.estimatedItemSize
         })
       );
     },
@@ -149,18 +134,20 @@ export default {
       return tempIndex;
     },
     //获取列表项的当前尺寸
-    getItemsSize(){
+    updateItemsSize(){
       let nodes = this.$refs.items;
       nodes.forEach((node)=>{
         let rect = node.getBoundingClientRect();
         let height = rect.height;
         let index = +node.id.slice(1)
-        let oldHeight = this.sizes[index];
+        let oldHeight = this.positions[index].height;
         let dValue = oldHeight - height;
         //存在差值
         if(dValue){
           this.positions[index].bottom = this.positions[index].bottom - dValue;
-          this.sizes[index] = height;
+          this.positions[index].height = height;
+          this.positions[index].over = true;
+          
           for(let k = index + 1;k<this.positions.length; k++){
             this.positions[k].top = this.positions[k-1].bottom;
             this.positions[k].bottom = this.positions[k].bottom - dValue;
@@ -189,11 +176,6 @@ export default {
       this.start = this.getStartIndex(scrollTop);
       //此时的结束索引
       this.end = this.start + this.visibleCount;
-
-      // this.log('start,end:',this.start,this.end);
-      
-
-
       //此时的偏移量
       this.setStartOffset();
     }
@@ -222,14 +204,6 @@ export default {
   right: 0;
   top: 0;
   position: absolute;
-}
-
-.infinite-list-item {
-  padding: 5px;
-  color: #555;
-  box-sizing: border-box;
-  border-bottom: 1px solid #999;
-  /* height:200px; */
 }
 
 </style>
