@@ -44,6 +44,9 @@ export default {
         }
       })
     },
+    anchorPoint(){
+      return this.positions.length ? this.positions[this.start] : null;
+    },
     visibleCount(){
       return Math.ceil(this.screenHeight / this.estimatedItemSize);
     },
@@ -61,6 +64,7 @@ export default {
   },
   created(){
     this.initPositions();
+    this.setScrollState(false);
     window.vm = this;
   },
   mounted() {
@@ -89,6 +93,8 @@ export default {
   },
   data() {
     return {
+      //是否正在滚动
+      scrolling:false,
       //可视区域高度
       screenHeight:0,
       //起始索引
@@ -98,6 +104,14 @@ export default {
     };
   },
   methods: {
+    //设定滚动状态
+    setScrollState(flg = false){
+      this.scrolling = flg;
+    },
+    scrollEnd(){
+      
+    },
+    //初始化缓存
     initPositions(){
       this.positions = this.listData.map((d,index)=>({
           index,
@@ -112,6 +126,7 @@ export default {
       //二分法查找
       return this.binarySearch(this.positions,scrollTop)
     },
+    //二分法查找
     binarySearch(list,value){
       let start = 0;
       let end = list.length - 1;
@@ -153,10 +168,9 @@ export default {
             this.positions[k].bottom = this.positions[k].bottom - dValue;
           }
         }
-        
       })
     },
-    //获取当前的偏移量
+    //更新偏移量
     setStartOffset(){
       let startOffset;
       if(this.start >= 1){
@@ -171,12 +185,19 @@ export default {
     scrollEvent() {
       //当前滚动位置
       let scrollTop = this.$refs.list.scrollTop;
-      // let startBottom = this.positions[this.start - ]
+      //更新滚动状态
+      this.setScrollState(true);
+      //防抖处理滚动结束
+      this.scrollEnd();
+      //排除不需要计算的情况
+      if(scrollTop <= this.anchorPoint.bottom && scrollTop >= this.anchorPoint.top){
+        return;
+      }
       //此时的开始索引
       this.start = this.getStartIndex(scrollTop);
       //此时的结束索引
       this.end = this.start + this.visibleCount;
-      //此时的偏移量
+      //更新偏移量
       this.setStartOffset();
     }
   }
@@ -204,6 +225,13 @@ export default {
   right: 0;
   top: 0;
   position: absolute;
+}
+
+.infinite-list-item {
+  padding: 5px;
+  color: #555;
+  box-sizing: border-box;
+  border-bottom: 1px solid #999;
 }
 
 </style>
