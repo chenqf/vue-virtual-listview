@@ -13,7 +13,7 @@
       <template v-else>
         <div ref="items" class="infinite-list-item-container flex" :id="row._key" :key="row._key" v-for="row in visibleData">
           <template v-for="(item,index) in row.value">
-            <div :key="row._key + '-' + index">
+            <div class="infinite-item" :key="row._key + '-' + index">
               <slot class="infinite-list-item" :item="item"></slot>
             </div> 
           </template>
