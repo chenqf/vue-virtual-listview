@@ -2,15 +2,30 @@
   <div ref="list" :style="{height}" class="infinite-list-container" @scroll="scrollEvent($event)">
     <div ref="phantom" class="infinite-list-phantom"></div>
     <div ref="content" class="infinite-list">
-      <div class="infinite-list-item" ref="items" :id="item._index" :key="item._index" v-for="item in visibleData">
-        <slot ref="slot" :item="item.item"></slot>
-      </div>
+      <template v-if="column === 1">
+        <div ref="items" class="infinite-list-item-container" :id="row._key" :key="row._key" v-for="row in visibleData">
+          <template v-for="item in row.value">
+            <slot class="infinite-list-item" :item="item"></slot>
+          </template>
+        </div>
+      </template>
+
+      <template v-else>
+        <div ref="items" class="infinite-list-item-container flex" :id="row._key" :key="row._key" v-for="row in visibleData">
+          <template v-for="(item,index) in row.value">
+            <div :key="row._key + '-' + index">
+              <slot class="infinite-list-item" :item="item"></slot>
+            </div> 
+          </template>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 
 <script>
+import _ from '../util'
 export default {
   name:'VirtualList',
   props: {
@@ -18,6 +33,11 @@ export default {
     listData:{
       type:Array,
       default:()=>[]
+    },
+    //列表列数
+    column:{
+      type:Number,
+      default:2
     },
     //预估高度
     estimatedItemSize:{
@@ -37,12 +57,18 @@ export default {
   },
   computed:{
     _listData(){
-      return this.listData.map((item,index)=>{
-        return {
-          _index:`_${index}`,
-          item
+      return this.listData.reduce((init,cur,index)=>{
+        if(index % this.column === 0){
+          init.push({
+            // _转换后的索引_第一项在原列表中的索引_本行包含几列
+            _key:`_${index/this.column}_${index}_${this.column}`,
+            value:[cur]
+          })
+        }else{
+          init[init.length - 1].value.push(cur)
         }
-      })
+        return init;
+      },[])
     },
     anchorPoint(){
       return this.positions.length ? this.positions[this.start] : null;
@@ -51,7 +77,7 @@ export default {
       return Math.ceil(this.screenHeight / this.estimatedItemSize);
     },
     aboveCount(){
-      return Math.min(this.start,this.bufferScale * this.visibleCount)
+      return Math.min(this.start,this.bufferScale * this.visibleCount);
     },
     belowCount(){
       return Math.min(this.listData.length - this.end,this.bufferScale * this.visibleCount);
@@ -60,6 +86,14 @@ export default {
       let start = this.start - this.aboveCount;
       let end = this.end + this.belowCount;
       return this._listData.slice(start, end);
+    }
+  },
+  watch:{
+    scrolling(cur,pre){
+      //滚动结束
+      if(!cur && pre){
+        this.log('scroll over')
+      }
     }
   },
   created(){
@@ -74,10 +108,10 @@ export default {
   },
   updated(){
     //列表数据长度不等于缓存长度
-    if(this.listData.length !== this.positions.length){
+    if(this._listData.length !== this.positions.length){
       this.initPositions();
     }
-
+    
     this.$nextTick(function () {
       if(!this.$refs.items || !this.$refs.items.length){
         return ;
@@ -104,16 +138,25 @@ export default {
     };
   },
   methods: {
+    //TODO 动画
+    scrollToIndex(index = 0){
+      this.$el.scrollTop = this.positions[Math.floor(index/this.column)].top;
+    },
+    //TODO 动画
+    scrollToSize(size = 0){
+      this.$el.scrollTop = size;
+    },
     //设定滚动状态
     setScrollState(flg = false){
       this.scrolling = flg;
     },
-    scrollEnd(){
-      
-    },
+    //防抖处理，设置滚动状态 
+    scrollEnd:_.debounce(function(){
+      this.setScrollState(false)
+    },100),
     //初始化缓存
     initPositions(){
-      this.positions = this.listData.map((d,index)=>({
+      this.positions = this._listData.map((d,index)=>({
           index,
           height:this.estimatedItemSize,
           top:index * this.estimatedItemSize,
@@ -154,14 +197,14 @@ export default {
       nodes.forEach((node)=>{
         let rect = node.getBoundingClientRect();
         let height = rect.height;
-        let index = +node.id.slice(1)
+        let index = +node.id.replace(/^_(\d+).*/,'$1')
         let oldHeight = this.positions[index].height;
         let dValue = oldHeight - height;
         //存在差值
         if(dValue){
           this.positions[index].bottom = this.positions[index].bottom - dValue;
           this.positions[index].height = height;
-          this.positions[index].over = true;
+          this.positions[index].over = true; // TODO
           
           for(let k = index + 1;k<this.positions.length; k++){
             this.positions[k].top = this.positions[k-1].bottom;
@@ -227,11 +270,16 @@ export default {
   position: absolute;
 }
 
-.infinite-list-item {
-  padding: 5px;
-  color: #555;
-  box-sizing: border-box;
-  border-bottom: 1px solid #999;
+/* .infinite-list-item-container {
+  
+} */
+
+.infinite-list-item-container.flex {
+  display: flex;
+}
+
+.infinite-item{
+  flex:1
 }
 
 </style>
