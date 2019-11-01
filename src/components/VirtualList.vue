@@ -2,23 +2,32 @@
   <div ref="list" :style="{height}" class="infinite-list-container" @scroll="scrollEvent($event)">
     <div ref="phantom" class="infinite-list-phantom"></div>
     <div ref="content" class="infinite-list">
+      <!-- 单列展示 -->
       <template v-if="column === 1">
         <div ref="items" class="infinite-list-item-container" :id="row._key" :key="row._key" v-for="row in visibleData">
           <template v-for="item in row.value">
-            <slot class="infinite-list-item" :item="item"></slot>
+            <slot :item="item"></slot>
           </template>
         </div>
       </template>
 
-      <template v-else>
+      <!-- 多列展示 -->
+      <template v-if="column > 1">
         <div ref="items" class="infinite-list-item-container flex" :id="row._key" :key="row._key" v-for="row in visibleData">
           <template v-for="(item,index) in row.value">
             <div class="infinite-item" :key="row._key + '-' + index">
-              <slot class="infinite-list-item" :item="item"></slot>
+              <slot :item="item"></slot>
+            </div> 
+          </template>
+          <!-- 空占位 -->
+          <template v-if="row.value.length < column">
+            <div v-for="(item,index) in (column - row.value.length%column)" class="infinite-item" :key="'empty-' + index">
             </div> 
           </template>
         </div>
       </template>
+
+      <!-- 瀑布流 -->
     </div>
   </div>
 </template>
@@ -37,7 +46,13 @@ export default {
     //列表列数
     column:{
       type:Number,
-      default:2
+      default:1
+    },
+    onScroll:{
+      type:Function
+    },
+    onScrollEnd:{
+      type:Function
     },
     //预估高度
     estimatedItemSize:{
@@ -89,12 +104,12 @@ export default {
     }
   },
   watch:{
-    scrolling(cur,pre){
-      //滚动结束
-      if(!cur && pre){
-        this.log('scroll over')
-      }
-    }
+    // scrolling(cur,pre){
+    //   //滚动结束
+    //   if(!cur && pre){
+        
+    //   }
+    // }
   },
   created(){
     this.initPositions();
@@ -105,6 +120,7 @@ export default {
     this.screenHeight = this.$el.clientHeight;
     this.start = 0;
     this.end = this.start + this.visibleCount;
+    this.setStartOffset();
   },
   updated(){
     //列表数据长度不等于缓存长度
@@ -138,22 +154,18 @@ export default {
     };
   },
   methods: {
-    //TODO 动画
-    scrollToIndex(index = 0){
-      this.$el.scrollTop = this.positions[Math.floor(index/this.column)].top;
-    },
-    //TODO 动画
-    scrollToSize(size = 0){
-      this.$el.scrollTop = size;
-    },
     //设定滚动状态
     setScrollState(flg = false){
       this.scrolling = flg;
     },
     //防抖处理，设置滚动状态 
-    scrollEnd:_.debounce(function(){
+    scrollEnd:_.debounce(function(event,data){
       this.setScrollState(false)
+      this.onScrollEnd && this.onScrollEnd(event,data);
     },100),
+    scrollingEvent:function(event,data){
+      this.onScroll && this.onScroll(event,data)
+    },
     //初始化缓存
     initPositions(){
       this.positions = this._listData.map((d,index)=>({
@@ -222,26 +234,40 @@ export default {
       }else{
         startOffset = 0;
       }
+      this.startOffset = startOffset;
       this.$refs.content.style.transform = `translate3d(0,${startOffset}px,0)`
     },
     //滚动事件
-    scrollEvent() {
+    scrollEvent(event) {
       //当前滚动位置
       let scrollTop = this.$refs.list.scrollTop;
       //更新滚动状态
       this.setScrollState(true);
-      //防抖处理滚动结束
-      this.scrollEnd();
       //排除不需要计算的情况
-      if(scrollTop <= this.anchorPoint.bottom && scrollTop >= this.anchorPoint.top){
-        return;
+      if(scrollTop > this.anchorPoint.bottom || scrollTop < this.anchorPoint.top){
+        //此时的开始索引
+        this.start = this.getStartIndex(scrollTop);
+        //此时的结束索引
+        this.end = this.start + this.visibleCount;
+        //更新偏移量
+        this.setStartOffset();
       }
-      //此时的开始索引
-      this.start = this.getStartIndex(scrollTop);
-      //此时的结束索引
-      this.end = this.start + this.visibleCount;
-      //更新偏移量
-      this.setStartOffset();
+      //触发外部滚动事件
+      this.scrollingEvent(event,{
+          start:this.start * this.column,
+          end:Math.min(this.end * this.column,this.listData.length - 1),
+          startOffset:this.startOffset,
+          scrollTop
+        }
+      )
+      //防抖处理滚动结束
+      this.scrollEnd(event,{
+          start:this.start * this.column,
+          end:Math.min(this.end * this.column,this.listData.length - 1),
+          startOffset:this.startOffset,
+          scrollTop
+        }
+      );
     }
   }
 };
@@ -270,12 +296,13 @@ export default {
   position: absolute;
 }
 
-/* .infinite-list-item-container {
-  
-} */
+.infinite-list-item-container {
+    border-bottom:1px solid red;
+}
 
 .infinite-list-item-container.flex {
   display: flex;
+
 }
 
 .infinite-item{
