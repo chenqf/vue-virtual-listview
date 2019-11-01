@@ -1,5 +1,10 @@
 <template>
-  <div ref="list" :style="{height}" class="infinite-list-container" @scroll="scrollEvent($event)">
+  <div ref="list" :style="{height}" class="infinite-list-container" 
+    @scroll="scrollEvent($event)"
+    @touchstart="touchStartEvent($event)"
+    @touchmove="touchMoveEvent($event)"
+    @touchend="touchEndEvent($event)"
+  >
     <div ref="phantom" class="infinite-list-phantom"></div>
     <div ref="content" class="infinite-list">
       <!-- 单列展示 -->
@@ -47,6 +52,25 @@ export default {
     column:{
       type:Number,
       default:1
+    },
+    //最大滑动距离
+    maxDistance:{
+      type:Number,
+      default:150
+    },
+    //滑动距离与真实距离比值
+    distanceScale :{
+      type:Number,
+      default:2
+    },
+    //超过阈值的回调
+    topMethod:{
+      type:Function
+    },
+    //滑动距离阈值，超过阈值回调
+    topDistance :{
+      type:Number,
+      default:100
     },
     onScroll:{
       type:Function
@@ -143,6 +167,10 @@ export default {
   },
   data() {
     return {
+      //下拉状态
+      topLoading:false,
+      //下拉刷新距离
+      touchDistance:0,
       //是否正在滚动
       scrolling:false,
       //可视区域高度
@@ -268,9 +296,53 @@ export default {
           scrollTop
         }
       );
+    },
+    //Start
+    touchStartEvent(event){
+      //当前右距离，不记录起始位置
+      if(this.touchDistance){
+        event.preventDefault();
+        return ;
+      }
+      if(!this.scrolling && !this.$el.scrollTop){
+        //起始位置
+        this._startPos = event.touches[0].pageY;
+      }
+    },
+    //Move
+    touchMoveEvent(event){
+      if(!this.scrolling && !this.$el.scrollTop){
+        let curPos = event.touches[0].pageY;
+        this.touchDistance = Math.floor(Math.max(0,curPos - this._startPos)/this.distanceScale);
+        if(this.touchDistance <= this.maxDistance){
+          this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
+        }
+        // event.preventDefault();
+      }
+      if(this.touchDistance){
+        event.preventDefault();
+      }
+    },
+    //End
+    touchEndEvent(){
+      if(this.touchDistance){
+        this.log(this.touchDistance);
+        
+        if(this.touchDistance >= this.topDistance){
+          //
+          this.touchDistance = 50;
+          this.topMethod && this.topMethod();
+        }else{
+          this.touchDistance = 0;
+        }
+        // this.$refs.content.classList = ['infinite-list touch-transition']
+        this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
+      }
     }
   }
 };
+
+//http://mint-ui.github.io/docs/#/zh-cn2/loadmore
 </script>
 
 
@@ -309,4 +381,10 @@ export default {
   flex:1
 }
 
+.touch-transition{
+  transition: transform 0.5s;
+}
+
 </style>
+
+
