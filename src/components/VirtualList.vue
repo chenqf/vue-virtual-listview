@@ -12,7 +12,6 @@
         <template v-for="(item,col_index) in row.value">
           <div class="infinite-item" :key="row._key + '-' + col_index">
             <slot name="default" :item="item" :row="row_index" :col="col_index"></slot>
-            <!-- TODO 第几行，第几列 -->
           </div> 
         </template>
         <!-- 空占位 -->
@@ -21,7 +20,6 @@
           </div> 
         </template>
       </div>
-
       <!-- 瀑布流 -->
     </div>
   </div>
