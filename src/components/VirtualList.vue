@@ -1,9 +1,6 @@
 <template>
   <div ref="list" :style="{height}" class="infinite-list-container" 
     @scroll="scrollEvent($event)"
-    @touchstart="touchStartEvent($event)"
-    @touchmove="touchMoveEvent($event)"
-    @touchend="touchEndEvent($event)"
   >
     <div ref="phantom" class="infinite-list-phantom"></div>
     <!-- 顶部刷新区域 -->
@@ -164,6 +161,20 @@ export default {
     this.start = 0;
     this.end = this.start + this.visibleCount;
     this.setStartOffset();
+
+    //添加拖拽事件
+    if(this.topLoadMore){
+      this.$refs.list.addEventListener('touchstart',this.touchStartEvent)
+      this.$refs.list.addEventListener('touchmove',this.touchMoveEvent)
+      this.$refs.list.addEventListener('touchend',this.touchEndEvent)
+    }
+  },
+  destroyed(){
+    if(this.topLoadMore){
+      this.$refs.list.removeEventListener('touchstart',this.touchStartEvent)
+      this.$refs.list.removeEventListener('touchmove',this.touchMoveEvent)
+      this.$refs.list.removeEventListener('touchend',this.touchEndEvent)
+    }
   },
   updated(){
     if(this.dargState !== 'none'){
@@ -320,7 +331,6 @@ export default {
         event.preventDefault();
         return ;
       }
-
       //当前Y坐标
       let curPos = event.touches[0].pageY;
       //变大 && 当前滚动位置为0--下拉刷新
@@ -356,30 +366,21 @@ export default {
         this.touchDistance = this.topDistance;
         this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
         this.topMethod && this.topMethod();
+        this.$refs.content.style.transition = ` transform 0.3s`
+        setTimeout(()=>{
+            this.$refs.content.style.transition = ``
+        },350);
       }
-      //
-      // this.log('over')
-      // this.touchDistance = 0;
-      // 
-      // if(this.touchDistance){
-      //   this.log(this.touchDistance);
-        
-      //   if(this.touchDistance >= this.topDistance){
-      //     //
-      //     this.touchDistance = 50;
-      //     this.topMethod && this.topMethod();
-      //   }else{
-      //     this.touchDistance = 0;
-      //   }
-      //   // this.$refs.content.classList = ['infinite-list touch-transition']
-      //   this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
-      // }
     },
     onBottomLoaded(){
       this.dargState = 'none'
       //将距离变更为阈值点
       this.touchDistance = 0;
       this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
+      this.$refs.content.style.transition = ` transform 0.3s`
+      setTimeout(()=>{
+          this.$refs.content.style.transition = ``
+      },350);
     }
   }
 };
@@ -427,10 +428,6 @@ export default {
 
 .infinite-item{
   flex:1
-}
-
-.touch-transition{
-  transition: transform 0.5s;
 }
 
 </style>
