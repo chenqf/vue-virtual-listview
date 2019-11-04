@@ -6,31 +6,24 @@
     @touchend="touchEndEvent($event)"
   >
     <div ref="phantom" class="infinite-list-phantom"></div>
+    <!-- 顶部刷新区域 -->
+    <div v-if="dargState !== 'none'" :style="{height:touchDistance + 'px'}" class="infinite-top-container">
+      <slot name="top" :dargState="dargState" :dargDistance="touchDistance"></slot>
+    </div>
     <div ref="content" class="infinite-list">
-      <!-- 单列展示 -->
-      <template v-if="column === 1">
-        <div ref="items" class="infinite-list-item-container" :id="row._key" :key="row._key" v-for="row in visibleData">
-          <template v-for="item in row.value">
-            <slot :item="item"></slot>
-          </template>
-        </div>
-      </template>
-
-      <!-- 多列展示 -->
-      <template v-if="column > 1">
-        <div ref="items" class="infinite-list-item-container flex" :id="row._key" :key="row._key" v-for="row in visibleData">
-          <template v-for="(item,index) in row.value">
-            <div class="infinite-item" :key="row._key + '-' + index">
-              <slot :item="item"></slot>
-            </div> 
-          </template>
-          <!-- 空占位 -->
-          <template v-if="row.value.length < column">
-            <div v-for="(item,index) in (column - row.value.length%column)" class="infinite-item" :key="'empty-' + index">
-            </div> 
-          </template>
-        </div>
-      </template>
+      <div ref="items" class="infinite-list-item-container flex" :id="row._key" :key="row._key" v-for="row in visibleData">
+        <template v-for="(item,index) in row.value">
+          <div class="infinite-item" :key="row._key + '-' + index">
+            <slot name="default" :item="item"></slot>
+            <!-- TODO 第几行，第几列 -->
+          </div> 
+        </template>
+        <!-- 空占位 -->
+        <template v-if="row.value.length < column">
+          <div v-for="(item,index) in (column - row.value.length%column)" class="infinite-item" :key="'empty-' + index">
+          </div> 
+        </template>
+      </div>
 
       <!-- 瀑布流 -->
     </div>
@@ -39,6 +32,7 @@
 
 
 <script>
+// 参考：http://mint-ui.github.io/docs/#/
 import _ from '../util'
 export default {
   name:'VirtualList',
@@ -53,24 +47,29 @@ export default {
       type:Number,
       default:1
     },
+    //是否开启下拉刷新
+    topLoadMore:{
+      type:Boolean,
+      default:false
+    },
+    //超过阈值的回调 TODO 自定义校验
+    topMethod:{
+      type:Function
+    },
     //最大滑动距离
     maxDistance:{
       type:Number,
-      default:150
+      default:0
     },
     //滑动距离与真实距离比值
     distanceScale :{
       type:Number,
       default:2
     },
-    //超过阈值的回调
-    topMethod:{
-      type:Function
-    },
     //滑动距离阈值，超过阈值回调
     topDistance :{
       type:Number,
-      default:100
+      default:70
     },
     onScroll:{
       type:Function
@@ -93,6 +92,26 @@ export default {
       type:String,
       default:'100%'
     }
+  },
+  data() {
+    return {
+      //拖拽状态
+      // pull 开始拖拽，距离未达到topDistance
+      // drop 距离达到 topDistance 释放触发 topMethod
+      // loading 已被释放，topMethod 已经执行
+      // none 拖拽完成或未触发
+      dargState:'none', 
+      //当前下拉距离
+      touchDistance:0,
+      //是否正在滚动
+      scrolling:false,
+      //可视区域高度
+      screenHeight:0,
+      //起始索引
+      start:0,
+      //结束索引
+      end:0,
+    };
   },
   computed:{
     _listData(){
@@ -147,11 +166,13 @@ export default {
     this.setStartOffset();
   },
   updated(){
+    if(this.dargState !== 'none'){
+      return;
+    }
     //列表数据长度不等于缓存长度
     if(this._listData.length !== this.positions.length){
       this.initPositions();
     }
-    
     this.$nextTick(function () {
       if(!this.$refs.items || !this.$refs.items.length){
         return ;
@@ -164,22 +185,6 @@ export default {
       //更新真实偏移量
       this.setStartOffset();
     })
-  },
-  data() {
-    return {
-      //下拉状态
-      topLoading:false,
-      //下拉刷新距离
-      touchDistance:0,
-      //是否正在滚动
-      scrolling:false,
-      //可视区域高度
-      screenHeight:0,
-      //起始索引
-      start:0,
-      //结束索引
-      end:0,
-    };
   },
   methods: {
     //设定滚动状态
@@ -299,54 +304,97 @@ export default {
     },
     //Start
     touchStartEvent(event){
-      //当前右距离，不记录起始位置
-      if(this.touchDistance){
-        event.preventDefault();
-        return ;
+      if(!this.topLoadMore){
+        return;
       }
-      if(!this.scrolling && !this.$el.scrollTop){
-        //起始位置
-        this._startPos = event.touches[0].pageY;
-      }
+      //记录当前起始Y坐标
+      this._startPos = event.touches[0].pageY;
     },
     //Move
     touchMoveEvent(event){
-      if(!this.scrolling && !this.$el.scrollTop){
-        let curPos = event.touches[0].pageY;
-        this.touchDistance = Math.floor(Math.max(0,curPos - this._startPos)/this.distanceScale);
-        if(this.touchDistance <= this.maxDistance){
-          this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
-        }
-        // event.preventDefault();
+      if(!this.topLoadMore){
+        return;
       }
-      if(this.touchDistance){
+      //TODO 暂时这样处理 loading 中不可滚动
+      if(this.dargState === 'loading'){
         event.preventDefault();
+        return ;
+      }
+
+      //当前Y坐标
+      let curPos = event.touches[0].pageY;
+      //变大 && 当前滚动位置为0--下拉刷新
+      if(curPos > this._startPos && this.$el.scrollTop === 0){
+        //当前拖拽距离
+        let distance = Math.floor(Math.max(0,curPos - this._startPos)/this.distanceScale);
+        //未达到阈值
+        if(distance < this.topDistance){
+          this.dargState = 'pull'
+        }
+        //已达到阈值
+        if(distance >= this.topDistance){
+          this.dargState = 'drop'
+        }
+        //设定偏移距离
+        if(distance <= this.maxDistance || !this.maxDistance){
+          this.touchDistance = distance;
+          this.log(this.touchDistance);
+          setTimeout(()=>{
+              this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
+          },0);
+        }
       }
     },
     //End
     touchEndEvent(){
-      if(this.touchDistance){
-        this.log(this.touchDistance);
-        
-        if(this.touchDistance >= this.topDistance){
-          //
-          this.touchDistance = 50;
-          this.topMethod && this.topMethod();
-        }else{
-          this.touchDistance = 0;
-        }
-        // this.$refs.content.classList = ['infinite-list touch-transition']
-        this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
+      if(!this.topLoadMore){
+        return;
       }
+      if(this.dargState === 'drop'){
+        this.dargState = 'loading'
+        //将距离变更为阈值点
+        this.touchDistance = this.topDistance;
+        this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
+        this.topMethod && this.topMethod();
+      }
+      //
+      // this.log('over')
+      // this.touchDistance = 0;
+      // 
+      // if(this.touchDistance){
+      //   this.log(this.touchDistance);
+        
+      //   if(this.touchDistance >= this.topDistance){
+      //     //
+      //     this.touchDistance = 50;
+      //     this.topMethod && this.topMethod();
+      //   }else{
+      //     this.touchDistance = 0;
+      //   }
+      //   // this.$refs.content.classList = ['infinite-list touch-transition']
+      //   this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
+      // }
+    },
+    onBottomLoaded(){
+      this.dargState = 'none'
+      //将距离变更为阈值点
+      this.touchDistance = 0;
+      this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
     }
   }
 };
-
-//http://mint-ui.github.io/docs/#/zh-cn2/loadmore
 </script>
 
 
 <style scoped>
+
+.infinite-top-container{
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+}
+
 .infinite-list-container {
   overflow: auto;
   position: relative;
@@ -386,5 +434,3 @@ export default {
 }
 
 </style>
-
-
