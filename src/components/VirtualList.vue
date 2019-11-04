@@ -8,10 +8,10 @@
       <slot name="top" :dargState="dargState" :dargDistance="touchDistance"></slot>
     </div>
     <div ref="content" class="infinite-list">
-      <div ref="items" class="infinite-list-item-container flex" :id="row._key" :key="row._key" v-for="row in visibleData">
-        <template v-for="(item,index) in row.value">
-          <div class="infinite-item" :key="row._key + '-' + index">
-            <slot name="default" :item="item"></slot>
+      <div ref="items" class="infinite-list-item-container flex" :id="row._key" :key="row._key" v-for="(row,row_index) in visibleData">
+        <template v-for="(item,col_index) in row.value">
+          <div class="infinite-item" :key="row._key + '-' + col_index">
+            <slot name="default" :item="item" :row="row_index" :col="col_index"></slot>
             <!-- TODO 第几行，第几列 -->
           </div> 
         </template>
@@ -30,6 +30,8 @@
 
 <script>
 // 参考：http://mint-ui.github.io/docs/#/
+// TODO kebab-case
+// 删除滚轮事件
 import _ from '../util'
 export default {
   name:'VirtualList',
@@ -169,7 +171,7 @@ export default {
       this.$refs.list.addEventListener('touchend',this.touchEndEvent)
     }
   },
-  destroyed(){
+  beforeDestroy(){
     if(this.topLoadMore){
       this.$refs.list.removeEventListener('touchstart',this.touchStartEvent)
       this.$refs.list.removeEventListener('touchmove',this.touchMoveEvent)
@@ -340,10 +342,12 @@ export default {
         //未达到阈值
         if(distance < this.topDistance){
           this.dargState = 'pull'
+          this.$emit('top-status-change', this.dargState,distance)
         }
         //已达到阈值
         if(distance >= this.topDistance){
           this.dargState = 'drop'
+          this.$emit('top-status-change', this.dargState,distance)
         }
         //设定偏移距离
         if(distance <= this.maxDistance || !this.maxDistance){
@@ -360,22 +364,32 @@ export default {
       if(!this.topLoadMore){
         return;
       }
+      if(this.dargState !== 'pull' && this.dargState !== 'drop'){
+        return ;
+      }
+      if(this.dargState === 'pull'){
+        this.dargState = 'none'
+        this.touchDistance = 0;
+      }
       if(this.dargState === 'drop'){
         this.dargState = 'loading'
         //将距离变更为阈值点
         this.touchDistance = this.topDistance;
-        this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
         this.topMethod && this.topMethod();
-        this.$refs.content.style.transition = ` transform 0.3s`
-        setTimeout(()=>{
-            this.$refs.content.style.transition = ``
-        },350);
       }
+      this.$emit('top-status-change', this.dargState,this.touchDistance)
+      this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
+      this.$refs.content.style.transition = ` transform 0.3s`
+      setTimeout(()=>{
+          this.$refs.content.style.transition = ``
+      },350);
     },
     onBottomLoaded(){
       this.dargState = 'none'
       //将距离变更为阈值点
       this.touchDistance = 0;
+      
+      this.$emit('top-status-change', this.dargState,this.touchDistance)
       this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
       this.$refs.content.style.transition = ` transform 0.3s`
       setTimeout(()=>{
