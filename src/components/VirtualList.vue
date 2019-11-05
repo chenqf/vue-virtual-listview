@@ -4,15 +4,24 @@
   >
     <div ref="phantom" class="infinite-list-phantom"></div>
     <!-- 顶部刷新区域 -->
-    <div v-if="dargState !== 'none'" :style="{height:touchDistance + 'px'}" class="infinite-top-container">
-      <slot name="top" :dargState="dargState" :dargDistance="touchDistance"></slot>
+    <div v-if="topLoadMore" v-show="dargState !== 'none'" :style="{height:touchDistance + 'px'}" class="infinite-top-container">
+      <slot name="top" :dargState="dargState" :dargDistance="touchDistance">
+        <div v-show="dargState === 'pull'">
+          下拉刷新...
+        </div>
+        <div v-show="dargState === 'drop'">
+          松开刷新...
+        </div>
+        <div v-show="dargState === 'loading'">
+          刷新中...
+        </div>
+      </slot>
     </div>
     <div ref="content" class="infinite-list">
       <div ref="items" class="infinite-list-item-container flex" :id="row._key" :key="row._key" v-for="(row,row_index) in visibleData">
         <template v-for="(item,col_index) in row.value">
           <div class="infinite-item" :key="row._key + '-' + col_index">
             <slot name="default" :item="item" :row="row_index" :col="col_index"></slot>
-            <!-- TODO 第几行，第几列 -->
           </div> 
         </template>
         <!-- 空占位 -->
@@ -68,7 +77,7 @@ export default {
     //滑动距离阈值，超过阈值回调
     topDistance :{
       type:Number,
-      default:70
+      default:60
     },
     onScroll:{
       type:Function
@@ -352,11 +361,11 @@ export default {
         //设定偏移距离
         if(distance <= this.maxDistance || !this.maxDistance){
           this.touchDistance = distance;
-          this.log(this.touchDistance);
           setTimeout(()=>{
               this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
           },0);
         }
+        event.preventDefault();
       }
     },
     //End
@@ -368,11 +377,15 @@ export default {
         return ;
       }
       if(this.dargState === 'pull'){
-        this.dargState = 'none'
+        setTimeout(()=>{
+            this.dargState = 'none'
+        },300);
         this.touchDistance = 0;
       }
       if(this.dargState === 'drop'){
-        this.dargState = 'loading'
+        setTimeout(()=>{
+            this.dargState = 'loading'
+        },300);
         //将距离变更为阈值点
         this.touchDistance = this.topDistance;
         this.topMethod && this.topMethod();
@@ -404,10 +417,9 @@ export default {
 <style scoped>
 
 .infinite-top-container{
-  position:absolute;
-  top:0;
-  left:0;
-  right:0;
+  transform:translateZ(0);
+  position: relative;
+  z-index: 2;
 }
 
 .infinite-list-container {
@@ -428,6 +440,7 @@ export default {
   left: 0;
   right: 0;
   top: 0;
+  z-index:1;
   position: absolute;
 }
 
