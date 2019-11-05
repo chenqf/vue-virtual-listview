@@ -4,16 +4,30 @@
   >
     <div ref="phantom" class="infinite-list-phantom"></div>
     <!-- 顶部刷新区域 -->
-    <div v-if="topLoadMore" v-show="dargState !== 'none'" :style="{height:touchDistance + 'px'}" class="infinite-top-container">
+    <div ref="top" v-if="topLoadMore" v-show="dargState !== 'none' && touchDistance >= 20" class="infinite-top-container">
       <slot name="top" :dargState="dargState" :dargDistance="touchDistance">
-        <div v-show="dargState === 'pull'">
-          下拉刷新...
-        </div>
-        <div v-show="dargState === 'drop'">
-          松开刷新...
-        </div>
-        <div v-show="dargState === 'loading'">
-          刷新中...
+        <div class="infinite-top-content" :style="{color:topTextColor}">
+          <span class="infinite-top-content-icon icon-arrow" :class="dargState === 'drop' ? 'icon-reverse':''" v-if="dargState === 'pull' || dargState === 'drop'">
+            <svg t="1572934878285" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4245" width="24" height="24">
+              <path d="M548.352 241.152L716.8 409.6a32.768 32.768 0 0 1 0 46.592 30.72 30.72 0 0 1-45.568 0l-116.736-115.2v464.896a32.768 32.768 0 1 1-65.024 0V340.992L372.736 460.8a39.424 39.424 0 0 1-45.568-6.656 32.768 32.768 0 0 1 0-46.592l162.816-166.4a35.328 35.328 0 0 1 58.368 0z" :fill="topTextColor" p-id="4246"></path>
+            </svg>
+          </span>
+          <span class="infinite-top-content-icon icon-revolve" v-if="dargState === 'loading'">
+            <svg class="icon" t="1572936012117" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="9195" width="32" height="32">
+              <path d="M527.36 225.28h-30.72c-8.192 0-15.36 7.168-15.36 15.36v133.12c0 8.192 7.168 15.36 15.36 15.36h30.72c8.192 0 15.36-7.168 15.36-15.36v-133.12c0-8.192-7.168-15.36-15.36-15.36z m256 256h-133.12c-8.192 0-15.36 7.168-15.36 15.36v30.72c0 8.192 7.168 15.36 15.36 15.36h133.12c8.192 0 15.36-7.168 15.36-15.36v-30.72c0-8.192-7.168-15.36-15.36-15.36z m-256 153.6h-30.72c-8.192 0-15.36 7.168-15.36 15.36v133.12c0 8.192 7.168 15.36 15.36 15.36h30.72c8.192 0 15.36-7.168 15.36-15.36v-133.12c0-8.192-7.168-15.36-15.36-15.36zM389.12 527.36v-30.72c0-8.192-7.168-15.36-15.36-15.36h-133.12c-8.192 0-15.36 7.168-15.36 15.36v30.72c0 8.192 7.168 15.36 15.36 15.36h133.12c8.192 0 15.36-7.168 15.36-15.36z m220.16-91.136c6.144 6.144 15.36 6.144 21.504 0l94.208-94.208c6.144-6.144 6.144-15.36 0-21.504l-21.504-21.504c-6.144-6.144-15.36-6.144-21.504 0l-94.208 94.208c-6.144 6.144-6.144 15.36 0 21.504l21.504 21.504z m22.528 151.552c-6.144-6.144-15.36-6.144-21.504 0l-21.504 21.504c-6.144 6.144-6.144 15.36 0 21.504l94.208 94.208c6.144 6.144 15.36 6.144 21.504 0l21.504-21.504c6.144-6.144 6.144-15.36 0-21.504l-94.208-94.208z m-217.088 0c-6.144-6.144-15.36-6.144-21.504 0l-94.208 94.208c-6.144 6.144-6.144 15.36 0 21.504l21.504 21.504c6.144 6.144 15.36 6.144 21.504 0l94.208-94.208c6.144-6.144 6.144-15.36 0-21.504l-21.504-21.504z m-72.704-289.792c-6.144-6.144-15.36-6.144-21.504 0l-21.504 21.504c-6.144 6.144-6.144 15.36 0 21.504l94.208 94.208c6.144 6.144 15.36 6.144 21.504 0l21.504-21.504c6.144-6.144 6.144-15.36 0-21.504l-94.208-94.208z" :fill="topTextColor" p-id="9196"></path>
+            </svg>
+          </span>
+          <span class="infinite-top-content-title">
+            <template v-if="dargState === 'pull'">
+              {{topPullText}}
+            </template>
+            <template v-if="dargState === 'drop'">
+               {{topDropText}}
+            </template>
+            <template v-if="dargState === 'loading'">
+              {{topLoadingText}}
+            </template>
+          </span>
         </div>
       </slot>
     </div>
@@ -60,9 +74,28 @@ export default {
       type:Boolean,
       default:false
     },
-    //超过阈值的回调 TODO 自定义校验
+    //超过阈值的回调
     topMethod:{
-      type:Function
+      type:Function,
+      default:function(){
+        return function(){}
+      }
+    },
+    topTextColor:{
+      type:String,
+      default:'#000000'
+    },
+    topPullText:{
+      type:String,
+      default:'上拉刷新'
+    },
+    topDropText:{
+      type:String,
+      default:'释放更新'
+    },
+    topLoadingText:{
+      type:String,
+      default:'加载中...'
     },
     //最大滑动距离
     maxDistance:{
@@ -77,7 +110,7 @@ export default {
     //滑动距离阈值，超过阈值回调
     topDistance :{
       type:Number,
-      default:60
+      default:70
     },
     onScroll:{
       type:Function
@@ -176,7 +209,7 @@ export default {
     //添加拖拽事件
     if(this.topLoadMore){
       this.$refs.list.addEventListener('touchstart',this.touchStartEvent)
-      this.$refs.list.addEventListener('touchmove',this.touchMoveEvent)
+      this.$refs.list.addEventListener('touchmove',this.touchMoveEvent,true)
       this.$refs.list.addEventListener('touchend',this.touchEndEvent)
     }
   },
@@ -331,23 +364,30 @@ export default {
       }
       //记录当前起始Y坐标
       this._startPos = event.touches[0].pageY;
+      this._prevPos = event.touches[0].pageY;
     },
     //Move
     touchMoveEvent(event){
       if(!this.topLoadMore){
         return;
       }
-      //TODO 暂时这样处理 loading 中不可滚动
+      //暂时这样处理 loading 中不可滚动
       if(this.dargState === 'loading'){
         event.preventDefault();
         return ;
       }
       //当前Y坐标
       let curPos = event.touches[0].pageY;
-      //变大 && 当前滚动位置为0--下拉刷新
-      if(curPos > this._startPos && this.$el.scrollTop === 0){
-        //当前拖拽距离
-        let distance = Math.floor(Math.max(0,curPos - this._startPos)/this.distanceScale);
+      //下拉且 不在顶部
+      if(curPos > this._prevPos && this.$el.scrollTop !== 0){
+        return ;
+      }
+      //下拉 且 在顶部
+      if(curPos > this._prevPos && this.$el.scrollTop === 0){
+        this.touchDistance = Math.max(this.touchDistance + curPos - this._prevPos,0);
+        
+        let distance = ~~(this.touchDistance / this.distanceScale)
+
         //未达到阈值
         if(distance < this.topDistance){
           this.dargState = 'pull'
@@ -360,13 +400,42 @@ export default {
         }
         //设定偏移距离
         if(distance <= this.maxDistance || !this.maxDistance){
-          this.touchDistance = distance;
+          let d = this.maxDistance ? Math.min(distance,this.maxDistance) : distance;
           setTimeout(()=>{
-              this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
+              this.$refs.content.style.transform = `translate3d(0,${d}px,0)`
+              this.$refs.top.style.height = `${d}px`
           },0);
         }
-        event.preventDefault();
       }
+      //上划 且 没有拖拽距离
+      if(curPos < this._prevPos && !this.touchDistance){
+        return ;
+      }
+      //上划 且 有拖拽距离
+      if(curPos < this._prevPos && this.touchDistance){
+        this.touchDistance = Math.max(this.touchDistance + curPos - this._prevPos,0);
+        let distance = ~~(this.touchDistance / this.distanceScale)
+        //未达到阈值
+        if(distance < this.topDistance){
+          this.dargState = 'pull'
+          this.$emit('top-status-change', this.dargState,distance)
+        }
+        //已达到阈值
+        if(distance >= this.topDistance){
+          this.dargState = 'drop'
+          this.$emit('top-status-change', this.dargState,distance)
+        }
+        //设定偏移距离
+        if(distance <= this.maxDistance || !this.maxDistance){
+          let d = this.maxDistance ? Math.min(distance,this.maxDistance) : distance;
+          setTimeout(()=>{
+              this.$refs.content.style.transform = `translate3d(0,${d}px,0)`
+              this.$refs.top.style.height = `${d}px`
+          },0);
+        }
+        event.preventDefault(); 
+      }
+      this._prevPos = curPos;
     },
     //End
     touchEndEvent(){
@@ -376,6 +445,7 @@ export default {
       if(this.dargState !== 'pull' && this.dargState !== 'drop'){
         return ;
       }
+      this.log(this.touchDistance)
       if(this.dargState === 'pull'){
         setTimeout(()=>{
             this.dargState = 'none'
@@ -386,28 +456,34 @@ export default {
         setTimeout(()=>{
             this.dargState = 'loading'
         },300);
-        //将距离变更为阈值点
-        this.touchDistance = this.topDistance;
+        //将距离变更为阈值点 - 20
+        this.touchDistance = (this.topDistance - 20) * this.distanceScale;
         this.topMethod && this.topMethod();
       }
-      this.$emit('top-status-change', this.dargState,this.touchDistance)
-      this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
-      this.$refs.content.style.transition = ` transform 0.3s`
+
+      this.$emit('top-status-change', this.dargState,~~(this.touchDistance / this.distanceScale))
+      this.$refs.content.style.transition = `transform 0.3s`
+      this.$refs.content.style.transform = `translate3d(0,${~~(this.touchDistance / this.distanceScale)}px,0)`
+      this.$refs.top.style.transition = `height 0.3s`
+      this.$refs.top.style.height = `${~~(this.touchDistance / this.distanceScale)}px`
       setTimeout(()=>{
           this.$refs.content.style.transition = ``
+          this.$refs.top.style.transition = ``
+          
       },350);
     },
     onBottomLoaded(){
-      this.dargState = 'none'
-      //将距离变更为阈值点
       this.touchDistance = 0;
-      
-      this.$emit('top-status-change', this.dargState,this.touchDistance)
-      this.$refs.content.style.transform = `translate3d(0,${this.touchDistance}px,0)`
-      this.$refs.content.style.transition = ` transform 0.3s`
+      this.$emit('top-status-change', this.dargState,~~(this.touchDistance / this.distanceScale))
+      this.$refs.content.style.transition = `transform 0.2s`
+      this.$refs.content.style.transform = `translate3d(0,${~~(this.touchDistance / this.distanceScale)}px,0)`
+      this.$refs.top.style.transition = `height 0.2s`
+      this.$refs.top.style.height = `0px`
       setTimeout(()=>{
+          this.dargState = 'none'
           this.$refs.content.style.transition = ``
-      },350);
+          this.$refs.top.style.transition = ``
+      },250);
     }
   }
 };
@@ -415,6 +491,40 @@ export default {
 
 
 <style scoped>
+
+.infinite-top-content{
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.infinite-top-content-icon{
+  display: flex;
+  align-items: center;
+  transition:transform 0.2s;
+  
+}
+.icon-arrow{
+  transform:rotate(180deg);
+}
+.icon-arrow.icon-reverse{
+  transform:rotate(360deg);
+}
+
+.icon-revolve{
+  animation:revolve 1.2s linear infinite;
+}
+
+@keyframes revolve
+{
+  from {transform:rotate(0);}
+  to {transform:rotate(360deg);}
+}
+
+.infinite-top-content-title{
+  font-size: 14px;
+}
 
 .infinite-top-container{
   transform:translateZ(0);
