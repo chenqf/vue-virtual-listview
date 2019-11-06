@@ -1,8 +1,7 @@
 {
   "name": "vue-virtual-listview",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "vue-virtual-listview",
-  "private":false,
   "main": "dist/index.min.js",
   "dependencies": {
     "@babel/core": "^7.6.4",

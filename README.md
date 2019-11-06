@@ -9,7 +9,6 @@
 通过 npm:
 
 ```shell
-// npm
 npm install vue-virtual-listview --save
 ```
 
@@ -36,10 +35,10 @@ export default{
     data(){
         return [
             {
-                value:'This is one demo~'
+                value:'Est quo tempora consequatur......'
             },
             {
-                value:'This is tow demo~'
+                value:'Excepturi magni hic deserunt......'
             }
             //.....
         ]
@@ -79,10 +78,10 @@ export default{
     data(){
         return [
             {
-                value:'This is one demo~'
+                value:'Est quo tempora consequatur......'
             },
             {
-                value:'This is tow demo~'
+                value:'Excepturi magni hic deserunt......'
             }
             //.....
         ]
