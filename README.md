@@ -50,6 +50,8 @@ export default{
 
 ```
 
+![](./1.gif)
+
 ## 下拉刷新
 
 ```html
@@ -105,6 +107,8 @@ export default{
 }
 
 ```
+
+![](./2.gif)
 
 ## 属性
 
