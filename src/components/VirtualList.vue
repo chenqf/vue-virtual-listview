@@ -1,4 +1,5 @@
 <template>
+  <div ref="parent">
   <div ref="list" :style="{height}" class="infinite-list-container" 
     @scroll="scrollEvent($event)"
   >
@@ -32,7 +33,7 @@
       </slot>
     </div>
     <div ref="content" class="infinite-list">
-      <div ref="items" class="infinite-list-item-container flex" :id="row._key" :key="row._key" v-for="(row,row_index) in visibleData">
+      <div ref="items" class="infinite-list-item-container" :id="row._key" :key="row._key" v-for="(row,row_index) in visibleData">
         <template v-for="(item,col_index) in row.value">
           <div class="infinite-item" :key="row._key + '-' + col_index">
             <slot name="default" :item="item" :row="row_index" :col="col_index"></slot>
@@ -48,6 +49,8 @@
       <!-- 瀑布流 -->
     </div>
   </div>
+  </div>
+  
 </template>
 
 
@@ -198,7 +201,7 @@ export default {
   created(){
     this.initPositions();
     this.setScrollState(false);
-    window.vm = this;
+    // window.vm = this;
   },
   mounted() {
     this.screenHeight = this.$el.clientHeight;
@@ -209,7 +212,7 @@ export default {
     //添加拖拽事件
     if(this.topLoadMore){
       this.$refs.list.addEventListener('touchstart',this.touchStartEvent)
-      this.$refs.list.addEventListener('touchmove',this.touchMoveEvent,true)
+      this.$refs.list.addEventListener('touchmove',this.touchMoveEvent)
       this.$refs.list.addEventListener('touchend',this.touchEndEvent)
     }
   },
@@ -378,12 +381,13 @@ export default {
       }
       //当前Y坐标
       let curPos = event.touches[0].pageY;
-      //下拉且 不在顶部
-      if(curPos > this._prevPos && this.$el.scrollTop !== 0){
+      //下拉 且 不在顶部
+      if(curPos > this._prevPos && this.$refs.list.scrollTop !== 0){
         return ;
       }
       //下拉 且 在顶部
-      if(curPos > this._prevPos && this.$el.scrollTop === 0){
+      if(curPos > this._prevPos && this.$refs.list.scrollTop === 0){
+        // event.preventDefault(); 
         this.touchDistance = Math.max(this.touchDistance + curPos - this._prevPos,0);
         
         let distance = ~~(this.touchDistance / this.distanceScale)
@@ -445,7 +449,6 @@ export default {
       if(this.dargState !== 'pull' && this.dargState !== 'drop'){
         return ;
       }
-      this.log(this.touchDistance)
       if(this.dargState === 'pull'){
         setTimeout(()=>{
             this.dargState = 'none'
@@ -469,7 +472,6 @@ export default {
       setTimeout(()=>{
           this.$refs.content.style.transition = ``
           this.$refs.top.style.transition = ``
-          
       },350);
     },
     onBottomLoaded(){
@@ -479,8 +481,8 @@ export default {
       this.$refs.content.style.transform = `translate3d(0,${~~(this.touchDistance / this.distanceScale)}px,0)`
       this.$refs.top.style.transition = `height 0.2s`
       this.$refs.top.style.height = `0px`
+      this.dargState = 'none'
       setTimeout(()=>{
-          this.dargState = 'none'
           this.$refs.content.style.transition = ``
           this.$refs.top.style.transition = ``
       },250);
@@ -533,7 +535,9 @@ export default {
 }
 
 .infinite-list-container {
-  overflow: auto;
+  overflow-x:hidden;
+  width: 100%;
+  overflow-y: auto;
   position: relative;
   -webkit-overflow-scrolling: touch;
 }
@@ -555,12 +559,7 @@ export default {
 }
 
 .infinite-list-item-container {
-    border-bottom:1px solid red;
-}
-
-.infinite-list-item-container.flex {
   display: flex;
-
 }
 
 .infinite-item{
