@@ -50,7 +50,7 @@ export default{
 
 ```
 
-![虚拟列表](./1.gif)
+![](https://user-gold-cdn.xitu.io/2019/11/6/16e3f69800015311?w=42
 
 ## 下拉刷新
 
@@ -108,7 +108,7 @@ export default{
 
 ```
 
-![下拉刷新](./2.gif)
+![](https://user-gold-cdn.xitu.io/2019/11/6/16e3f69baeb2b81f?w=426&h=755&f=gif&s=571954)
 
 ## 属性
 
