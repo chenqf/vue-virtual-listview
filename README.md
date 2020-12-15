@@ -43,7 +43,7 @@ export default{
             //.....
         ]
     },
-    component:{
+    components:{
         VirtualList
     }
 }
@@ -101,7 +101,7 @@ export default{
             this.$refs.vlist.onBottomLoaded();
         },
     },
-    component:{
+    components:{
         VirtualList
     }
 }
