@@ -289,7 +289,7 @@ export default {
           if(tempIndex === null || tempIndex > midIndex){
             tempIndex = midIndex;
           }
-          end = end - 1;
+          end = midIndex - 1;
         }
       }
       return tempIndex;
